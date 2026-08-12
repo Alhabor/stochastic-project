@@ -1,100 +1,648 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-language="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
 <title>Trading Against Noise — SHBI-GB.7301 Final Presentation</title>
+<script>
+  (function () {
+    try {
+      const params = new URLSearchParams(location.search);
+      const savedTheme = params.get("theme") || localStorage.getItem("stochastic-slides-theme");
+      const savedLanguage = params.get("lang") || localStorage.getItem("stochastic-slides-language");
+      document.documentElement.dataset.theme = savedTheme === "light" ? "light" : "dark";
+      document.documentElement.dataset.language = savedLanguage === "zh" ? "zh" : "en";
+      document.documentElement.lang = savedLanguage === "zh" ? "zh-CN" : "en";
+    } catch (_) {}
+  })();
+</script>
 <style>
   :root {
-    --bg: #12120f; --surface: #1a1a19; --card: #fcfcfb;
-    --ink: #f5f4ef; --ink2: #c3c2b7; --muted: #898781;
-    --blue: #3987e5; --orange: #d95926; --aqua: #199e70;
-    --red: #e66767; --hair: #383835;
+    color-scheme: dark;
+    --void: #030806;
+    --bg: #07110e;
+    --surface: #0d1a16;
+    --surface-2: #12231d;
+    --card: #f8fbf9;
+    --ink: #f3f8f5;
+    --ink2: #bac8c0;
+    --muted: #7f958a;
+    --blue: #48a8ff;
+    --orange: #ff7a45;
+    --aqua: #43d3a1;
+    --red: #ff6f79;
+    --hair: rgba(186, 220, 204, .18);
+    --grid: rgba(67, 211, 161, .045);
+    --shadow: rgba(0, 0, 0, .44);
+    --u: min(1vw, 1.77777778vh);
+  }
+  html[data-theme="light"] {
+    color-scheme: light;
+    --void: #d8e2dc;
+    --bg: #f1f6f3;
+    --surface: #e6efea;
+    --surface-2: #dce9e2;
+    --card: #fff;
+    --ink: #10221a;
+    --ink2: #3f564b;
+    --muted: #647b70;
+    --blue: #086fc5;
+    --orange: #c94e20;
+    --aqua: #087c59;
+    --red: #b91f35;
+    --hair: rgba(35, 73, 56, .20);
+    --grid: rgba(8, 124, 89, .055);
+    --shadow: rgba(37, 65, 52, .18);
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { height: 100%; background: var(--bg); color: var(--ink);
-    font-family: system-ui, -apple-system, "Segoe UI", sans-serif; overflow: hidden; }
-  .deck { height: 100%; position: relative; }
-  .slide { position: absolute; inset: 0; display: none; flex-direction: column;
-    justify-content: center; padding: 4.5vh 7vw 9vh; }
-  .slide.active { display: flex; }
-  .kicker { font-size: clamp(12px, 1.4vw, 16px); letter-spacing: .18em;
-    text-transform: uppercase; color: var(--muted); margin-bottom: 1.2vh; }
-  h1 { font-size: clamp(34px, 5.4vw, 72px); line-height: 1.05; letter-spacing: -0.02em; }
-  h2 { font-size: clamp(24px, 3.4vw, 44px); line-height: 1.12; letter-spacing: -0.015em;
-    margin-bottom: 2.6vh; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+  body {
+    display: grid;
+    place-items: center;
+    background: var(--void);
+    color: var(--ink);
+    font-family: "Aptos", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    text-rendering: optimizeLegibility;
+  }
+  button, a { font: inherit; }
+  button { color: inherit; }
+  .stage {
+    position: relative;
+    width: min(100vw, 177.77777778vh);
+    height: min(100vh, 56.25vw);
+    overflow: hidden;
+    isolation: isolate;
+    background:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+      radial-gradient(circle at 78% 18%, color-mix(in srgb, var(--blue) 9%, transparent), transparent 28%),
+      var(--bg);
+    background-size: calc(var(--u) * 4) calc(var(--u) * 4), calc(var(--u) * 4) calc(var(--u) * 4), auto, auto;
+    box-shadow: 0 24px 80px var(--shadow);
+  }
+  .stage::before {
+    content: "";
+    position: absolute;
+    top: calc(var(--u) * 2.15);
+    left: calc(var(--u) * 4.8);
+    right: calc(var(--u) * 4.8);
+    height: 1px;
+    background: linear-gradient(90deg, var(--aqua), var(--hair) 18%, var(--hair) 82%, var(--blue));
+    opacity: .72;
+    z-index: 2;
+  }
+  .deck { width: 100%; height: 100%; position: relative; }
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    justify-content: flex-start !important;
+    padding: calc(var(--u) * 3.15) calc(var(--u) * 4.8) calc(var(--u) * 4.15);
+    overflow: hidden;
+  }
+  .slide.active { display: flex; animation: slide-in .24s ease-out both; }
+  .slide > * { position: relative; z-index: 1; }
+  .slide::after {
+    content: attr(data-trace);
+    position: absolute;
+    right: calc(var(--u) * 13.2);
+    top: calc(var(--u) * 2.9);
+    color: var(--muted);
+    font: 600 calc(var(--u) * .72)/1 "SF Mono", ui-monospace, monospace;
+    letter-spacing: .08em;
+  }
+  @keyframes slide-in {
+    from { opacity: 0; transform: translateY(calc(var(--u) * .22)); }
+    to { opacity: 1; transform: none; }
+  }
+  .kicker {
+    max-width: 78%;
+    color: var(--muted);
+    font-size: calc(var(--u) * .82);
+    font-weight: 650;
+    letter-spacing: .18em;
+    line-height: 1.2;
+    text-transform: uppercase;
+    margin-bottom: calc(var(--u) * .78);
+  }
+  h1, h2 {
+    font-family: "Avenir Next Condensed", "Arial Narrow", "Aptos Display", "PingFang SC", sans-serif;
+    color: var(--ink);
+    font-weight: 760;
+    text-wrap: balance;
+  }
+  h1 {
+    font-size: calc(var(--u) * 6.15);
+    line-height: .94;
+    letter-spacing: -.035em;
+  }
+  h2 {
+    max-width: 96%;
+    font-size: calc(var(--u) * 3.5);
+    line-height: 1.02;
+    letter-spacing: -.026em;
+    margin-bottom: calc(var(--u) * 1.42);
+  }
   h2 .hl { color: var(--blue); }
-  p, li { font-size: clamp(15px, 1.75vw, 22px); line-height: 1.5; color: var(--ink2); }
-  p + p { margin-top: 1.4vh; }
-  strong { color: var(--ink); font-weight: 650; }
+  p, li {
+    color: var(--ink2);
+    font-size: calc(var(--u) * 1.64);
+    line-height: 1.34;
+  }
+  p + p { margin-top: calc(var(--u) * .72); }
+  strong { color: var(--ink); font-weight: 690; }
+  em { color: var(--ink); }
   ul { list-style: none; }
-  li { padding-left: 1.2em; position: relative; margin-bottom: 1.4vh; }
-  li::before { content: "—"; position: absolute; left: 0; color: var(--blue); }
-  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 3.5vw; align-items: center; }
-  .cols-31 { grid-template-columns: 1.35fr 1fr; }
-  .formula { font-family: "SF Mono", ui-monospace, Menlo, monospace;
-    font-size: clamp(14px, 1.7vw, 21px); color: var(--ink); background: var(--surface);
-    border: 1px solid var(--hair); border-left: 3px solid var(--blue);
-    border-radius: 10px; padding: 2vh 1.6vw; margin: 1.8vh 0; overflow-x: auto;
-    white-space: nowrap; }
+  li {
+    position: relative;
+    padding-left: 1.18em;
+    margin-bottom: calc(var(--u) * .72);
+  }
+  li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: .65em;
+    width: .52em;
+    height: 2px;
+    background: var(--blue);
+  }
+  .cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: calc(var(--u) * 2.45);
+    align-items: center;
+    min-height: 0;
+    flex: 1;
+  }
+  .cols-31 { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
+  .formula {
+    flex: none;
+    overflow: hidden;
+    color: var(--ink);
+    background: color-mix(in srgb, var(--surface) 92%, transparent);
+    border: 1px solid var(--hair);
+    border-left: calc(var(--u) * .22) solid var(--blue);
+    border-radius: calc(var(--u) * .48);
+    padding: calc(var(--u) * .96) calc(var(--u) * 1.22);
+    margin: 0 0 calc(var(--u) * .72);
+    font: 540 calc(var(--u) * 1.42)/1.2 "SF Mono", "Roboto Mono", ui-monospace, Menlo, monospace;
+    letter-spacing: -.02em;
+    white-space: nowrap;
+  }
   .formula .c { color: var(--muted); }
   .formula.orange { border-left-color: var(--orange); }
   .formula.aqua { border-left-color: var(--aqua); }
-  .fig { background: var(--card); border-radius: 14px; padding: 0.8vh 0.5vw;
-    box-shadow: 0 12px 40px rgba(0,0,0,.45); }
-  .fig img { width: 100%; height: auto; display: block; border-radius: 10px; }
-  .figcap { text-align: center; color: var(--muted); font-size: clamp(11px, 1.2vw, 15px);
-    margin-top: 1vh; }
-  .stat { display: flex; gap: 3.5vw; margin-top: 3vh; flex-wrap: wrap; }
-  .stat div { border-top: 2px solid var(--hair); padding-top: 1.2vh; min-width: 9vw; }
-  .stat .n { font-size: clamp(26px, 3.6vw, 52px); font-weight: 700; color: var(--ink);
-    font-variant-numeric: tabular-nums; }
-  .stat .n.blue { color: var(--blue); } .stat .n.orange { color: var(--orange); }
-  .stat .n.aqua { color: var(--aqua); } .stat .n.red { color: var(--red); }
-  .stat .l { font-size: clamp(11px, 1.25vw, 15px); color: var(--muted);
-    text-transform: uppercase; letter-spacing: .08em; margin-top: .5vh; }
-  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
-  th, td { font-size: clamp(13px, 1.5vw, 19px); padding: 1.1vh 1vw; text-align: right;
-    border-bottom: 1px solid var(--hair); color: var(--ink2); }
-  th { color: var(--muted); font-weight: 600; text-transform: uppercase;
-    font-size: clamp(10px, 1.1vw, 14px); letter-spacing: .06em; }
+  .fig {
+    overflow: hidden;
+    background: var(--card);
+    border: 1px solid color-mix(in srgb, var(--hair) 70%, transparent);
+    border-radius: calc(var(--u) * .62);
+    padding: calc(var(--u) * .22);
+    box-shadow: 0 calc(var(--u) * .65) calc(var(--u) * 2.2) var(--shadow);
+  }
+  .fig img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: calc(var(--u) * 32.4);
+    object-fit: contain;
+    border-radius: calc(var(--u) * .42);
+  }
+  .figcap {
+    margin-top: calc(var(--u) * .5);
+    color: var(--muted);
+    font-size: calc(var(--u) * 1.08) !important;
+    line-height: 1.3;
+    text-align: center;
+  }
+  .reader-note {
+    position: relative;
+    margin: 0 0 calc(var(--u) * .9);
+    padding: calc(var(--u) * .64) calc(var(--u) * .95) calc(var(--u) * .64) calc(var(--u) * 2.72);
+    color: var(--ink2);
+    background: color-mix(in srgb, var(--aqua) 8%, var(--surface));
+    border-top: 1px solid color-mix(in srgb, var(--aqua) 48%, var(--hair));
+    border-bottom: 1px solid var(--hair);
+    font-size: calc(var(--u) * 1.34);
+    line-height: 1.34;
+  }
+  .reader-note::before {
+    content: "READ";
+    position: absolute;
+    left: calc(var(--u) * .82);
+    top: calc(var(--u) * .75);
+    color: var(--aqua);
+    font: 700 calc(var(--u) * .62)/1 "SF Mono", ui-monospace, monospace;
+    letter-spacing: .1em;
+  }
+  html[data-language="zh"] .reader-note::before { content: "释义"; }
+  .stat {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: calc(var(--u) * 1.15);
+    width: min(100%, calc(var(--u) * 58));
+    margin-top: calc(var(--u) * 3.2);
+  }
+  .stat > div {
+    min-width: 0;
+    padding: calc(var(--u) * .8) calc(var(--u) * .2) 0;
+    border-top: 2px solid var(--hair);
+  }
+  .stat .n {
+    color: var(--ink);
+    font-size: calc(var(--u) * 3.2);
+    font-weight: 760;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .stat .n.blue { color: var(--blue); }
+  .stat .n.orange { color: var(--orange); }
+  .stat .n.aqua { color: var(--aqua); }
+  .stat .n.red { color: var(--red); }
+  .stat .l {
+    margin-top: calc(var(--u) * .42);
+    color: var(--muted);
+    font-size: calc(var(--u) * .78);
+    font-weight: 650;
+    letter-spacing: .08em;
+    line-height: 1.25;
+    text-transform: uppercase;
+  }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td {
+    padding: calc(var(--u) * .58) calc(var(--u) * .72);
+    color: var(--ink2);
+    border-bottom: 1px solid var(--hair);
+    font-size: calc(var(--u) * 1.38);
+    line-height: 1.2;
+    text-align: right;
+  }
+  th {
+    color: var(--muted);
+    font-size: calc(var(--u) * .98);
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+  }
   td:first-child, th:first-child { text-align: left; }
-  td.win { color: var(--ink); font-weight: 650; }
-  .badge { display: inline-block; background: var(--surface); border: 1px solid var(--hair);
-    color: var(--ink2); border-radius: 999px; padding: .5vh 1.2vw;
-    font-size: clamp(11px, 1.3vw, 15px); margin: 0 .6vw .8vh 0; }
-  .demo-btn { display: inline-block; margin-top: 3.5vh; background: var(--blue);
-    color: #fff; text-decoration: none; font-size: clamp(18px, 2.4vw, 30px);
-    font-weight: 650; padding: 2vh 3vw; border-radius: 14px;
-    box-shadow: 0 10px 34px rgba(57,135,229,.35); }
-  .demo-btn:hover { filter: brightness(1.1); }
-  .note-hint { color: var(--muted); font-size: clamp(11px, 1.2vw, 14px); margin-top: 2vh; }
-  /* chrome */
-  .hud { position: fixed; bottom: 2.2vh; left: 0; right: 0; display: flex;
-    justify-content: space-between; padding: 0 7vw; color: var(--muted);
-    font-size: clamp(11px, 1.2vw, 14px); pointer-events: none; z-index: 5; }
-  .bar { position: fixed; bottom: 0; left: 0; height: 3px; background: var(--blue);
-    width: 0; transition: width .25s ease; z-index: 6; }
-  .notes { position: fixed; inset: auto 0 0 0; max-height: 38vh; overflow-y: auto;
-    background: rgba(18,18,15,.96); border-top: 1px solid var(--hair);
-    padding: 2vh 7vw 6vh; display: none; z-index: 4; }
+  td.win { color: var(--ink); font-weight: 690; }
+  .demo-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: calc(var(--u) * 24);
+    margin-top: calc(var(--u) * 2.6);
+    padding: calc(var(--u) * 1.2) calc(var(--u) * 2.4);
+    color: #fff;
+    background: var(--blue);
+    border: 1px solid color-mix(in srgb, var(--blue) 72%, white);
+    border-radius: calc(var(--u) * .62);
+    box-shadow: 0 calc(var(--u) * .72) calc(var(--u) * 2.2) color-mix(in srgb, var(--blue) 28%, transparent);
+    font-size: calc(var(--u) * 1.68);
+    font-weight: 720;
+    text-decoration: none;
+    transition: transform .16s ease, filter .16s ease;
+  }
+  .demo-btn:hover, .demo-btn:focus-visible { filter: brightness(1.08); transform: translateY(-2px); }
+  .note-hint {
+    margin-top: calc(var(--u) * 1.05) !important;
+    color: var(--muted) !important;
+    font-size: calc(var(--u) * .92) !important;
+    line-height: 1.3;
+  }
+  .prefs, .nav, .sourcebar {
+    position: absolute;
+    z-index: 8;
+    display: flex;
+    align-items: center;
+  }
+  .prefs { top: calc(var(--u) * 2.45); right: calc(var(--u) * 4.65); gap: calc(var(--u) * .38); }
+  .chrome-btn, .sourcebar a {
+    min-width: calc(var(--u) * 2.05);
+    height: calc(var(--u) * 1.62);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink2);
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    border: 1px solid var(--hair);
+    border-radius: 999px;
+    font: 650 calc(var(--u) * .72)/1 "SF Mono", ui-monospace, monospace;
+    letter-spacing: .04em;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .chrome-btn:hover, .chrome-btn:focus-visible, .sourcebar a:hover, .sourcebar a:focus-visible {
+    color: var(--ink);
+    border-color: var(--blue);
+    outline: none;
+  }
+  .nav {
+    right: calc(var(--u) * 4.8);
+    bottom: calc(var(--u) * 1.45);
+    gap: calc(var(--u) * .42);
+  }
+  .nav .chrome-btn { border-radius: calc(var(--u) * .35); }
+  #hud-count {
+    min-width: calc(var(--u) * 4.8);
+    color: var(--muted);
+    font: 650 calc(var(--u) * .7)/1 "SF Mono", ui-monospace, monospace;
+    text-align: center;
+  }
+  .sourcebar {
+    left: calc(var(--u) * 4.8);
+    bottom: calc(var(--u) * 1.45);
+    max-width: calc(var(--u) * 60);
+    gap: calc(var(--u) * .42);
+  }
+  .sourcebar-label {
+    margin-right: calc(var(--u) * .2);
+    color: var(--muted);
+    font: 700 calc(var(--u) * .65)/1 "SF Mono", ui-monospace, monospace;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+  .sourcebar a { width: auto; padding: 0 calc(var(--u) * .72); }
+  .bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    z-index: 9;
+    width: 0;
+    height: calc(var(--u) * .15);
+    background: linear-gradient(90deg, var(--aqua), var(--blue));
+    transition: width .22s ease;
+  }
+  .notes {
+    position: absolute;
+    inset: auto 0 0;
+    z-index: 7;
+    display: none;
+    max-height: 42%;
+    overflow-y: auto;
+    padding: calc(var(--u) * 1.3) calc(var(--u) * 4.8) calc(var(--u) * 3.4);
+    background: color-mix(in srgb, var(--bg) 96%, transparent);
+    border-top: 1px solid var(--orange);
+    backdrop-filter: blur(12px);
+  }
   .notes.show { display: block; }
-  .notes h4 { color: var(--orange); text-transform: uppercase; letter-spacing: .1em;
-    font-size: 12px; margin-bottom: 1vh; }
-  .notes p { font-size: clamp(13px, 1.4vw, 17px); }
+  .notes h4 {
+    margin-bottom: calc(var(--u) * .55);
+    color: var(--orange);
+    font-size: calc(var(--u) * .7);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+  }
+  .notes p { font-size: calc(var(--u) * 1.02); }
+  /* Each archetype uses the full 16:9 field; body copy is sized for projection. */
+  .slide[data-layout="hero"] {
+    justify-content: center !important;
+    padding-bottom: calc(var(--u) * 3.8);
+  }
+  .slide[data-layout="hero"]::before {
+    content: "qₜ  ≠  pₜ";
+    position: absolute;
+    right: calc(var(--u) * 5.2);
+    top: 50%;
+    z-index: 0;
+    color: color-mix(in srgb, var(--blue) 13%, transparent);
+    font: 760 calc(var(--u) * 9.2)/1 "SF Mono", ui-monospace, monospace;
+    letter-spacing: -.08em;
+    transform: translateY(-50%) rotate(-4deg);
+  }
+  .slide[data-layout="hero"] > p:first-of-type {
+    max-width: calc(var(--u) * 54);
+    margin-top: calc(var(--u) * 1.35) !important;
+    font-size: calc(var(--u) * 1.72) !important;
+  }
+  .slide[data-layout="hero"] .stat { width: calc(var(--u) * 67); margin-top: calc(var(--u) * 3.7); }
+  .slide[data-layout="hero"] .stat .n { font-size: calc(var(--u) * 3.65); }
+  .slide[data-layout="hero"] .stat .l { font-size: calc(var(--u) * .88); }
+  .slide[data-layout="hero"] .note-hint { margin-top: calc(var(--u) * 3.4) !important; }
+  .slide[data-layout="question"] ul {
+    display: grid;
+    flex: 1;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: calc(var(--u) * .8) calc(var(--u) * 1.25);
+    min-height: 0;
+  }
+  .slide[data-layout="question"] li {
+    display: flex;
+    align-items: center;
+    margin: 0;
+    padding: calc(var(--u) * 1.2) calc(var(--u) * 1.35) calc(var(--u) * 1.2) calc(var(--u) * 2.35);
+    background: color-mix(in srgb, var(--surface) 74%, transparent);
+    border-top: 1px solid var(--hair);
+    font-size: calc(var(--u) * 1.64);
+  }
+  .slide[data-layout="question"] li::before { left: calc(var(--u) * .92); }
+  .slide[data-layout="compare"] .cols { align-items: stretch; }
+  .slide[data-layout="compare"] .cols > ul {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 100%;
+    padding: calc(var(--u) * 1.55) calc(var(--u) * 1.55);
+    background: color-mix(in srgb, var(--surface) 62%, transparent);
+    border-top: 1px solid var(--hair);
+  }
+  .slide[data-layout="compare"] .cols > ul:first-child { border-top-color: var(--aqua); }
+  .slide[data-layout="compare"] .cols > ul:last-child { border-top-color: var(--orange); }
+  .slide[data-layout="compare"] li { margin-bottom: calc(var(--u) * 1.15); }
+  .slide[data-layout="layers"] .formula {
+    display: flex;
+    align-items: center;
+    min-height: calc(var(--u) * 5.55);
+    padding: calc(var(--u) * 1.1) calc(var(--u) * 1.45);
+    font-size: calc(var(--u) * 1.62);
+  }
+  .slide[data-layout="layers"] > p:not(.reader-note):not(.note-hint) {
+    margin-top: calc(var(--u) * .55) !important;
+    padding: calc(var(--u) * 1.1) 0 0 calc(var(--u) * 1.35);
+    border-left: calc(var(--u) * .22) solid var(--aqua);
+    font-size: calc(var(--u) * 1.58);
+  }
+  .slide[data-layout="figure"] { align-items: stretch !important; }
+  .slide[data-layout="figure"] .fig { flex: 1; display: grid; place-items: center; min-height: 0; }
+  .slide[data-layout="figure"] .fig img { width: auto !important; max-width: 100% !important; max-height: calc(var(--u) * 43.4) !important; }
+  .slide[data-layout="technical"] > ul {
+    display: grid;
+    flex: 1;
+    gap: calc(var(--u) * .85);
+    min-height: 0;
+  }
+  .slide[data-layout="technical"] > ul > li {
+    display: flex;
+    align-items: center;
+    margin: 0;
+    padding: calc(var(--u) * 1.25) calc(var(--u) * 1.25) calc(var(--u) * 1.25) calc(var(--u) * 2.25);
+    background: color-mix(in srgb, var(--surface) 66%, transparent);
+    border-top: 1px solid var(--hair);
+  }
+  .slide[data-layout="technical"] > ul > li::before { left: calc(var(--u) * .85); }
+  .slide:nth-of-type(6) > ul { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .slide:nth-of-type(6) > ul > li { font-size: calc(var(--u) * 1.52); }
+  .slide:nth-of-type(7) > ul { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+  .slide:nth-of-type(7) > ul > li { font-size: calc(var(--u) * 1.54); }
+  .slide[data-layout="technical"] .cols {
+    flex: 1;
+    align-items: stretch;
+    margin-top: calc(var(--u) * .65);
+  }
+  .slide[data-layout="technical"] .cols > ul {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 100%;
+    padding: calc(var(--u) * 1.45) calc(var(--u) * 1.4);
+    background: color-mix(in srgb, var(--surface) 65%, transparent);
+    border-top: 1px solid var(--hair);
+  }
+  .slide[data-layout="technical"] .cols > ul li { margin-bottom: calc(var(--u) * 1.05); }
+  .slide[data-layout="technical"] .cols > ul:first-child { border-top-color: var(--aqua); }
+  .slide[data-layout="technical"] .cols > ul:last-child { border-top-color: var(--blue); }
+  .slide[data-layout="evidence"] ul {
+    display: grid;
+    flex: 1;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: repeat(3, 1fr);
+    gap: calc(var(--u) * .72) calc(var(--u) * .9);
+    min-height: 0;
+  }
+  .slide[data-layout="evidence"] li {
+    display: flex;
+    align-items: center;
+    margin: 0;
+    padding: calc(var(--u) * .9) calc(var(--u) * 1.05) calc(var(--u) * .9) calc(var(--u) * 2.1);
+    background: color-mix(in srgb, var(--surface) 62%, transparent);
+    border-top: 1px solid var(--hair);
+    font-size: calc(var(--u) * 1.42);
+  }
+  .slide[data-layout="evidence"] li::before { left: calc(var(--u) * .8); }
+  .slide[data-layout="evidence"] li:last-child { grid-column: 1 / -1; }
+  .slide[data-layout="evidence"] > p:not(.reader-note):not(.note-hint) {
+    margin-top: calc(var(--u) * .8) !important;
+    padding: calc(var(--u) * .9) calc(var(--u) * 1.2);
+    background: color-mix(in srgb, var(--orange) 8%, var(--surface));
+    border-left: calc(var(--u) * .22) solid var(--orange);
+    font-size: calc(var(--u) * 1.3);
+  }
+  .slide[data-layout="figure-split"] .cols,
+  .slide[data-layout="figure-table"] .cols,
+  .slide[data-layout="formula-figure"] .cols { align-items: stretch; }
+  .slide[data-layout="figure-split"] .cols > div,
+  .slide[data-layout="figure-table"] .cols > div,
+  .slide[data-layout="formula-figure"] .cols > div {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 0;
+  }
+  .slide[data-layout="figure-split"] .cols > ul,
+  .slide[data-layout="formula-figure"] .cols > ul {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: calc(var(--u) * 1.15) calc(var(--u) * 1.2);
+    background: color-mix(in srgb, var(--surface) 54%, transparent);
+    border-top: 1px solid var(--hair);
+  }
+  .slide[data-layout="figure-split"] .cols li,
+  .slide[data-layout="formula-figure"] .cols li { margin-bottom: calc(var(--u) * 1.05); }
+  .slide[data-layout="figure-table"] .cols > div:last-child {
+    padding: calc(var(--u) * .85) calc(var(--u) * 1.1);
+    background: color-mix(in srgb, var(--surface) 54%, transparent);
+    border-top: 1px solid var(--hair);
+  }
+  .slide[data-layout="figure-split"] .fig img,
+  .slide[data-layout="figure-table"] .fig img,
+  .slide[data-layout="formula-figure"] .fig img { max-height: calc(var(--u) * 31.5); }
+  .slide[data-layout="demo"] { align-items: center !important; justify-content: center !important; text-align: center; }
+  .slide[data-layout="demo"] h2 { max-width: 85%; font-size: calc(var(--u) * 4.65) !important; }
+  .demo-flow {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    width: 100%;
+    margin-top: calc(var(--u) * 2.2);
+    color: var(--ink);
+  }
+  .demo-flow span {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(var(--u) * 7.6);
+    padding: calc(var(--u) * 1.15) calc(var(--u) * 1.25);
+    border-top: 1px solid var(--blue);
+    border-bottom: 1px solid var(--hair);
+    background: color-mix(in srgb, var(--surface) 60%, transparent);
+    font-size: calc(var(--u) * 1.54);
+    font-weight: 650;
+  }
+  .demo-flow span + span { border-left: 1px solid var(--hair); }
+  .demo-flow span + span::before {
+    content: "→";
+    position: absolute;
+    left: calc(var(--u) * -.72);
+    z-index: 2;
+    width: calc(var(--u) * 1.45);
+    color: var(--blue);
+    background: var(--bg);
+    font-size: calc(var(--u) * 1.4);
+  }
+  .slide[data-layout="demo"] .demo-btn { margin-top: calc(var(--u) * 1.65); }
+  .slide[data-layout="close"] ul {
+    display: grid;
+    flex: 1;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: repeat(3, 1fr);
+    gap: calc(var(--u) * .7) calc(var(--u) * 1.2);
+    min-height: 0;
+  }
+  .slide[data-layout="close"] li {
+    display: flex;
+    align-items: center;
+    min-height: 0;
+    margin: 0;
+    padding: calc(var(--u) * .72) calc(var(--u) * 1) calc(var(--u) * .72) calc(var(--u) * 2.1);
+    background: color-mix(in srgb, var(--surface) 58%, transparent);
+    border-top: 1px solid var(--hair);
+  }
+  .slide[data-layout="close"] li::before { left: calc(var(--u) * .85); }
+  .slide[data-layout="close"] li:last-child { grid-column: 1 / -1; }
+  .slide[data-layout="close"] > p:not(.reader-note):not(.note-hint) {
+    margin-top: calc(var(--u) * .8) !important;
+    padding: calc(var(--u) * 1.05) calc(var(--u) * 1.2);
+    background: color-mix(in srgb, var(--aqua) 7%, var(--surface));
+    border-left: calc(var(--u) * .22) solid var(--aqua);
+    font-size: calc(var(--u) * 1.32);
+  }
+  html[data-language="zh"] h1, html[data-language="zh"] h2 { letter-spacing: -.015em; }
+  html[data-language="zh"] p, html[data-language="zh"] li { line-height: 1.45; }
+  @media (prefers-reduced-motion: reduce) {
+    .slide.active { animation: none; }
+    .bar, .demo-btn { transition: none; }
+  }
   @media print {
     html, body { overflow: visible; background: #fff; }
-    .slide { position: relative; display: flex !important; page-break-after: always;
-      min-height: 100vh; }
-    .hud, .bar, .notes { display: none !important; }
+    body { display: block; }
+    .stage { width: 100vw; height: auto; overflow: visible; box-shadow: none; }
+    .deck { height: auto; }
+    .slide { position: relative; display: flex !important; width: 100vw; height: 56.25vw; page-break-after: always; }
+    .prefs, .nav, .sourcebar, .bar, .notes { display: none !important; }
   }
 </style>
 </head>
 <body>
+<main class="stage" id="stage" aria-label="Trading Against Noise presentation">
 <div class="deck" id="deck">
 
 <!-- 1 ─ Title -->
-<section class="slide">
+<section class="slide" data-layout="hero">
   <div class="kicker">SHBI-GB.7301 · Stochastic Modeling &amp; Simulation · NYU Summer 2026</div>
   <h1>Trading Against Noise</h1>
   <p style="font-size:clamp(18px,2.4vw,30px); margin-top:2vh; color:var(--ink2)">
@@ -111,22 +659,23 @@
 </section>
 
 <!-- 2 ─ Hook -->
-<section class="slide">
+<section class="slide" data-layout="question">
   <div class="kicker">The question</div>
   <h2>A contract on “Will X happen?” trades at <span class="hl">40¢</span>
     and pays <span class="hl">$1</span> if X happens.<br>Can a simple rule beat just buying it?</h2>
+  <p class="reader-note"><strong>Prediction market:</strong> a tradable YES/NO claim. A 40¢ YES price is read as roughly a 40% implied chance. <strong>Buy-and-hold:</strong> buy one YES contract now and keep it until the event settles.</p>
   <ul>
-    <li>The price <strong>is</strong> the market's probability forecast — but it carries noise:
-      thin order books, sentiment, slow reactions.</li>
-    <li>If dips below "fair value" are usually noise, <strong>buying dips</strong> should profit.</li>
-    <li>If the market is basically right, <strong>nothing</strong> beats buy-and-hold.</li>
-    <li>Which world are we in — and what does the answer depend on?</li>
+    <li><span>The price <strong>is</strong> the market's probability forecast — but it carries noise:
+      thin order books, sentiment, slow reactions.</span></li>
+    <li><span>If dips below "fair value" are usually noise, <strong>buying dips</strong> should profit.</span></li>
+    <li><span>If the market is basically right, <strong>nothing</strong> beats buy-and-hold.</span></li>
+    <li><span>Which world are we in — and what does the answer depend on?</span></li>
   </ul>
   <div class="notes"><h4>Speaker notes</h4><p>Frame as a bet between two worldviews: exploitable noise vs. efficient markets. Our contribution is measuring precisely when each wins — inside a controlled simulation.</p></div>
 </section>
 
 <!-- 3 ─ Why simulation -->
-<section class="slide">
+<section class="slide" data-layout="compare">
   <div class="kicker">Why simulate instead of backtest?</div>
   <h2>In a simulation, <span class="hl">we control the truth</span></h2>
   <div class="cols">
@@ -145,9 +694,10 @@
 </section>
 
 <!-- 4 ─ Model overview -->
-<section class="slide">
+<section class="slide" data-layout="layers">
   <div class="kicker">The model · professor-approved structure</div>
   <h2>Three layers, simulated in order each period</h2>
+  <p class="reader-note"><strong>Notation:</strong> t is the current time step; T is the final step; q is the hidden event probability; p is the market price visible to the trader.</p>
   <div class="formula orange">1 · Hidden truth&nbsp;&nbsp;<span class="c">q_t — a bounded random walk the trader NEVER sees</span></div>
   <div class="formula">2 · Observed price&nbsp;&nbsp;<span class="c">p_t = truth + noise (two variants)</span></div>
   <div class="formula aqua">3 · Settlement&nbsp;&nbsp;<span class="c">pays $1 with probability q_T, else $0</span></div>
@@ -158,7 +708,7 @@
 </section>
 
 <!-- 5 ─ The model, one picture -->
-<section class="slide" style="justify-content:center">
+<section class="slide" data-layout="figure">
   <div class="kicker">The model · one contract, period by period</div>
   <div class="fig" style="align-self:center; max-width:88%">
     <img src="assets/fig_single_path.png" alt="One simulated contract: hidden truth, observed price, EMA, buy marker, settlement"
@@ -173,38 +723,41 @@
 </section>
 
 <!-- 6 ─ Layer 1 -->
-<section class="slide">
+<section class="slide" data-layout="technical">
   <div class="kicker">Layer 1 · the hidden truth</div>
   <h2>A martingale that <span class="hl">stays a probability</span></h2>
   <div class="formula orange">q<sub>t+1</sub> = clip( q<sub>t</sub> + σ<sub>q</sub> · √(q<sub>t</sub>(1−q<sub>t</sub>)) · Z<sub>t</sub> ,&nbsp; ε, 1−ε )&nbsp;&nbsp;&nbsp;<span class="c">Z<sub>t</sub> ~ N(0,1) iid, ε = 0.001</span></div>
+  <p class="reader-note"><strong>Plain language:</strong> σ<sub>q</sub> controls truth volatility; N(0,1) iid means a fresh standard-normal shock each period; clip caps q between 0.001 and 0.999; martingale means no predictable upward or downward drift.</p>
   <ul>
-    <li><strong>Zero-mean shocks ⇒ E[q<sub>t+1</sub> | q<sub>t</sub>] = q<sub>t</sub>.</strong> Today's truth is the best forecast of tomorrow's — and it gives us testable implications.</li>
-    <li><strong>√(q(1−q)) damping:</strong> Bernoulli-variance structure — probabilities near 0 or 1 move less, so the walk stays in (0,1) naturally, not via the clip.</li>
-    <li><strong>Markov:</strong> tomorrow depends only on today. Simplest defensible information structure.</li>
+    <li><span><strong>Zero-mean shocks ⇒ E[q<sub>t+1</sub> | q<sub>t</sub>] = q<sub>t</sub>.</strong> Today's truth is the best forecast of tomorrow's — and it gives us testable implications.</span></li>
+    <li><span><strong>√(q(1−q)) damping:</strong> Bernoulli-variance structure — probabilities near 0 or 1 move less, so the walk stays in (0,1) naturally, not via the clip.</span></li>
+    <li><span><strong>Markov:</strong> tomorrow depends only on today. Simplest defensible information structure.</span></li>
   </ul>
   <div class="notes"><h4>Speaker notes</h4><p>The martingale property is doing double duty: it's economically sensible AND it's the basis of two validation tests (mean q_T = q0; settlement frequency = q0).</p></div>
 </section>
 
 <!-- 7 ─ Layer 2 -->
-<section class="slide">
+<section class="slide" data-layout="technical">
   <div class="kicker">Layer 2 · the observed price</div>
   <h2>One dial for market efficiency: <span class="hl">κ</span></h2>
   <div class="formula">A (iid noise):&nbsp;&nbsp;p<sub>t</sub> = clip( q<sub>t</sub> + η<sub>t</sub> )&nbsp;&nbsp;&nbsp;<span class="c">η<sub>t</sub> ~ N(0, σ<sub>p</sub>²)</span></div>
   <div class="formula">B (partial adj.):&nbsp;&nbsp;p<sub>t</sub> = clip( p<sub>t−1</sub> + κ(q<sub>t</sub> − p<sub>t−1</sub>) + η<sub>t</sub> )</div>
+  <p class="reader-note"><strong>How to read κ:</strong> κ=1 closes the full truth–price gap now; κ=0.2 closes about 20% per period, so the error lasts roughly five periods. σ<sub>p</sub> is the size of newly added price noise.</p>
   <ul>
-    <li>Variant A: an error is <strong>born and dies within one period</strong> — the market re-prices from scratch every step.</li>
-    <li>Variant B: the gap to truth closes at rate κ, so a shock decays geometrically — a cheap contract <strong>stays cheap for ~1/κ periods</strong>.</li>
-    <li>κ = 1 collapses B into A <strong>exactly</strong>, path-for-path (enforced by a test) — so κ is a continuous dial from "instant repricing" to "very sticky".</li>
-    <li>σ<sub>p</sub> sets how <em>much</em> error; κ sets how <em>long</em> it lives.</li>
+    <li><span>Variant A: an error is <strong>born and dies within one period</strong> — the market re-prices from scratch every step.</span></li>
+    <li><span>Variant B: the gap to truth closes at rate κ, so a shock decays geometrically — a cheap contract <strong>stays cheap for ~1/κ periods</strong>.</span></li>
+    <li><span>κ = 1 collapses B into A <strong>exactly</strong>, path-for-path (enforced by a test) — so κ is a continuous dial from "instant repricing" to "very sticky".</span></li>
+    <li><span>σ<sub>p</sub> sets how <em>much</em> error; κ sets how <em>long</em> it lives.</span></li>
   </ul>
   <div class="notes"><h4>Speaker notes</h4><p>These two dials — noise size and noise lifetime — are the axes of the whole study. Keep them separate in the audience's head now; the punchline depends on it.</p></div>
 </section>
 
 <!-- 8 ─ Policies -->
-<section class="slide">
+<section class="slide" data-layout="technical">
   <div class="kicker">The trading policies</div>
   <h2>Smooth the price, <span class="hl">buy the dip</span>, hold to settlement</h2>
   <div class="formula aqua">f<sub>t</sub> = α·p<sub>t</sub> + (1−α)·f<sub>t−1</sub>&nbsp;&nbsp;&nbsp;buy 1 unit when&nbsp; f<sub>t</sub> − p<sub>t</sub> &gt; δ</div>
+  <p class="reader-note"><strong>EMA in one line:</strong> f is a smoothed estimate built only from observed prices. Example: if f=50¢, p=40¢, and δ=5¢, then the 10¢ gap triggers a buy.</p>
   <div class="cols">
     <ul>
       <li><strong>α</strong> = memory of the fair-value estimate (small α = long memory)</li>
@@ -220,24 +773,26 @@
 </section>
 
 <!-- 9 ─ Validation -->
-<section class="slide">
+<section class="slide" data-layout="evidence">
   <div class="kicker">Why trust the numbers · 30% of the rubric</div>
   <h2><span class="hl">37 tests</span> gate every change</h2>
+  <p class="reader-note"><strong>Validation test:</strong> a property the simulator must satisfy before any result is accepted. These tests check both mathematical limits and information leakage—not whether a finding looks attractive.</p>
   <ul>
-    <li><strong>Zero-noise limit:</strong> σ<sub>p</sub>=0 ⇒ price ≡ truth, degenerate EMA never trades, all policies ≈ buy-and-hold (optional stopping on a martingale)</li>
-    <li><strong>Martingale:</strong> mean q<sub>T</sub> = 0.3996 vs q₀ = 0.40 (SE 0.0005) · settlement frequency 0.4030 (SE 0.0035)</li>
-    <li><strong>Calibration:</strong> contracts started at x settle YES ≈ x of the time, for x ∈ {0.10 … 0.90}</li>
-    <li><strong>No lookahead:</strong> shock all prices after t=40 → every pre-shock trade is bit-identical, even for a "future-hungry" probe policy built to exploit any leak</li>
-    <li><strong>Seed reproducibility:</strong> golden-value test pins the exact random stream</li>
+    <li><span><strong>Zero-noise limit:</strong> σ<sub>p</sub>=0 ⇒ price ≡ truth, degenerate EMA never trades, all policies ≈ buy-and-hold (optional stopping on a martingale)</span></li>
+    <li><span><strong>Martingale:</strong> mean q<sub>T</sub> = 0.3996 vs q₀ = 0.40 (SE 0.0005) · settlement frequency 0.4030 (SE 0.0035)</span></li>
+    <li><span><strong>Calibration:</strong> contracts started at x settle YES ≈ x of the time, for x ∈ {0.10 … 0.90}</span></li>
+    <li><span><strong>No lookahead:</strong> shock all prices after t=40 → every pre-shock trade is bit-identical, even for a "future-hungry" probe policy built to exploit any leak</span></li>
+    <li><span><strong>Seed reproducibility:</strong> golden-value test pins the exact random stream</span></li>
   </ul>
   <p style="margin-top:1.5vh"><strong>Adversarial review caught a real bug:</strong> our first lookahead test never actually showed the policy the shocked prices — it could not fail. Rebuilt through the real harness. Full log in the repo.</p>
   <div class="notes"><h4>Speaker notes</h4><p>The bug story is a feature, not an embarrassment: it shows the review process worked and the surviving test has actual detection power. PROJECT.md calls lookahead "the one bug that would invalidate the whole analysis."</p></div>
 </section>
 
 <!-- 10 ─ Experiment design -->
-<section class="slide">
+<section class="slide" data-layout="figure-split">
   <div class="kicker">Experiment design</div>
   <h2>Every claim carries a <span class="hl">95% CI</span></h2>
+  <p class="reader-note"><strong>95% CI:</strong> repeated experiments built this way would cover the true mean about 95% of the time. <strong>Paired difference / CRN:</strong> compare policies on the same simulated paths so path luck cancels.</p>
   <div class="cols cols-31">
     <ul>
       <li><strong>Per policy:</strong> E[profit], P(loss), E[loss | loss], CLT interval mean ± 1.96·s/√n</li>
@@ -254,9 +809,10 @@
 </section>
 
 <!-- 11 ─ Baseline results -->
-<section class="slide">
+<section class="slide" data-layout="figure-table">
   <div class="kicker">Results · baseline market (kappa 0.3 · noise 0.05)</div>
   <h2>Eight of nine cells <span class="hl">beat buy-and-hold</span></h2>
+  <p class="reader-note"><strong>Read the grid:</strong> each cell is one (α, δ) policy. Edge means E[policy profit] − E[buy-and-hold profit] per $1 contract; “significant” means its 95% paired CI stays above zero.</p>
   <div class="cols">
     <div>
       <div class="fig"><img src="assets/fig_grid_profit.png?v=20260812-1" alt="Policy grid heatmap" loading="eager" decoding="sync" fetchpriority="high" onerror="if (!this.dataset.retried) { this.dataset.retried = '1'; this.src = 'assets/fig_grid_profit.png?v=20260812-2'; }"></div>
@@ -279,9 +835,10 @@
 </section>
 
 <!-- 12 ─ Headline -->
-<section class="slide">
+<section class="slide" data-layout="figure-split">
   <div class="kicker">Headline experiment</div>
   <h2>How much persistence does the edge need? <span class="hl">None.</span></h2>
+  <p class="reader-note"><strong>Persistence here means pricing-error memory.</strong> κ=1 is immediate repricing with no carryover; smaller κ makes an error survive longer. The plotted “edge” is the best EMA policy minus buy-and-hold.</p>
   <div class="cols cols-31">
     <div>
       <div class="fig"><img src="assets/fig_headline_kappa.png" alt="Edge vs kappa"></div>
@@ -300,9 +857,10 @@
 </section>
 
 <!-- 13 ─ The twist -->
-<section class="slide">
+<section class="slide" data-layout="figure-table">
   <div class="kicker">The deeper finding</div>
   <h2><span class="hl">Noise creates the edge.</span> Persistence only shapes it.</h2>
+  <p class="reader-note"><strong>Read the heatmap:</strong> horizontal = κ, vertical = observation-noise size σ<sub>p</sub>. Every cell selects the best of nine EMA rules and compares it with buy-and-hold.</p>
   <div class="cols">
     <div>
       <div class="fig"><img src="assets/fig_headline_interaction.png" alt="kappa x sigma_p interaction"></div>
@@ -326,10 +884,11 @@
 </section>
 
 <!-- 14 ─ Jump model -->
-<section class="slide">
+<section class="slide" data-layout="formula-figure">
   <div class="kicker">Extension · the stress test slide 12 demands · default OFF</div>
   <h2>Add news: <span class="hl">Poisson arrivals</span> in the hidden truth</h2>
   <div class="formula orange">q<sub>t+1</sub> = clip( q<sub>t</sub> + √(q<sub>t</sub>(1−q<sub>t</sub>)) · [ σ<sub>q</sub>·Z<sub>t</sub> + B<sub>t</sub>·σ<sub>J</sub>·G<sub>t</sub> ] )&nbsp;&nbsp;&nbsp;<span class="c">B<sub>t</sub> ~ Bernoulli(λ)</span></div>
+  <p class="reader-note"><strong>News parameters:</strong> λ is the chance of a jump each period (λ=.05 gives about five events over T=100); σ<sub>J</sub> is jump size; B switches the jump on; G supplies a fresh positive or negative normal shock.</p>
   <div class="cols cols-31">
     <ul>
       <li><strong>Discrete-time Poisson process:</strong> geometric interarrivals (memoryless), event count ≈ Poisson(λT)</li>
@@ -346,9 +905,10 @@
 </section>
 
 <!-- 15 ─ News results -->
-<section class="slide">
+<section class="slide" data-layout="figure-split">
   <div class="kicker">Extension · quantified · all four model cases</div>
   <h2>News erodes the edge — and we <span class="hl">mapped where it dies</span></h2>
+  <p class="reader-note"><strong>Frontier:</strong> the boundary where even the best EMA rule no longer beats buy-and-hold. X marks a cell whose paired 95% CI is below zero, not merely a noisy negative estimate.</p>
   <div class="cols">
     <div>
       <div class="fig"><img src="assets/fig_jump_frontier.png" alt="News frontier heatmap"></div>
@@ -367,9 +927,10 @@
 </section>
 
 <!-- 16 ─ Risk -->
-<section class="slide">
+<section class="slide" data-layout="figure-split">
   <div class="kicker">Risk profile</div>
   <h2>The rule doesn't lose <span class="hl">less often</span> — it loses <span class="hl">less</span></h2>
+  <p class="reader-note"><strong>Why the two peaks:</strong> a YES contract bought at price p earns 1−p−cost if YES and loses p+cost if NO. A third spike at zero appears when the EMA signal never trades.</p>
   <div class="cols cols-31">
     <div>
       <div class="fig"><img src="assets/fig_profit_distribution.png" alt="Profit distributions"></div>
@@ -385,9 +946,10 @@
 </section>
 
 <!-- 17 ─ Real data -->
-<section class="slide">
+<section class="slide" data-layout="compare">
   <div class="kicker">Grounding in reality</div>
   <h2>Real Polymarket data <span class="hl">sets the inputs</span> — nothing more</h2>
+  <p class="reader-note"><strong>Gamma</strong> supplies market metadata; <strong>CLOB</strong> supplies price history. “Method of moments” chooses model parameters whose variance and one-step dependence match those observed summaries.</p>
   <div class="cols">
     <ul>
       <li>Live fetch from Polymarket's public APIs (Gamma + CLOB); paste any market URL into the dashboard</li>
@@ -404,10 +966,10 @@
 </section>
 
 <!-- 18 ─ Demo -->
-<section class="slide" style="align-items:center; text-align:center">
+<section class="slide" data-layout="demo">
   <div class="kicker">Live demo</div>
   <h2 style="font-size:clamp(30px,4.5vw,58px)">Let's break the market together</h2>
-  <p>Single Path Explorer → Policy Lab verdict flips as δ moves → load a real market → news jumps on</p>
+  <p class="demo-flow"><span>Single Path Explorer</span><span>Policy Lab verdict flips as δ moves</span><span>Load a real market</span><span>News jumps on</span></p>
   <a class="demo-btn" id="demo-btn" href="https://alhabor-stochastic-project.streamlit.app/" target="_blank" rel="noopener">Open the dashboard →</a>
   <p class="note-hint">Runs in Streamlit Community Cloud — no local setup required.
     Bundled samples keep the demo independent of the live Polymarket API.</p>
@@ -415,15 +977,16 @@
 </section>
 
 <!-- 19 ─ Conclusions -->
-<section class="slide">
+<section class="slide" data-layout="close">
   <div class="kicker">Conclusions</div>
   <h2>Count the <span class="hl">noise</span>, not the stickiness</h2>
+  <p class="reader-note"><strong>Scope:</strong> these statements explain the controlled simulator and its assumptions. They do not guarantee real-market returns; real price drops can combine noise, news, spreads, and market impact.</p>
   <ul>
-    <li>A naive EMA dip-buying rule beats buy-and-hold by <strong>+$0.10 per $1 contract</strong> at the baseline — CI-significant across the entire persistence range, surviving 2¢ costs</li>
-    <li>The expected "persistence threshold" doesn't exist; instead the edge peaks at moderate κ and is <strong>created by observation noise</strong> — vanishing exactly at σ<sub>p</sub> = 0</li>
-    <li>News erodes the edge linearly and kills it at a <strong>mapped frontier</strong> — (λ=0.2, σ<sub>J</sub>=0.6) flips the sign: dips become information</li>
-    <li>Trust chain: 37 tests · adversarial review · common random numbers · one master seed</li>
-    <li><strong>Future:</strong> place real markets on the frontier map (estimate λ, σ<sub>J</sub> from outsized moves) · exit rules &amp; position sizing · bid-ask spreads and price impact · correlated multi-market portfolios</li>
+    <li><span>A naive EMA dip-buying rule beats buy-and-hold by <strong>+$0.10 per $1 contract</strong> at the baseline — CI-significant across the entire persistence range, surviving 2¢ costs</span></li>
+    <li><span>The expected "persistence threshold" doesn't exist; instead the edge peaks at moderate κ and is <strong>created by observation noise</strong> — vanishing exactly at σ<sub>p</sub> = 0</span></li>
+    <li><span>News erodes the edge linearly and kills it at a <strong>mapped frontier</strong> — (λ=0.2, σ<sub>J</sub>=0.6) flips the sign: dips become information</span></li>
+    <li><span>Trust chain: 37 tests · adversarial review · common random numbers · one master seed</span></li>
+    <li><span><strong>Future:</strong> place real markets on the frontier map (estimate λ, σ<sub>J</sub> from outsized moves) · exit rules &amp; position sizing · bid-ask spreads and price impact · correlated multi-market portfolios</span></li>
   </ul>
   <p style="margin-top:3vh"><strong>The takeaway we'd offer:</strong> the best output of a simulation study is the mechanism it forces you to articulate. We asked "how much persistence does a trader need?" — the model answered "wrong question."</p>
   <p class="note-hint">github.com/larionovaa2248-glitch/stochastic-project · Thank you — questions!</p>
@@ -431,23 +994,431 @@
 </section>
 
 </div>
-
-<div class="hud"><span id="hud-title">Trading Against Noise</span><span id="hud-count"></span></div>
+<div class="prefs" aria-label="Presentation preferences">
+  <button class="chrome-btn" id="language-toggle" type="button" aria-label="Switch to Chinese">中文</button>
+  <button class="chrome-btn" id="theme-toggle" type="button" aria-label="Switch to light theme">☀</button>
+  <a class="chrome-btn" href="https://github.com/Alhabor/stochastic-project" target="_blank" rel="noopener" aria-label="Open project repository">GH↗</a>
+</div>
+<div class="sourcebar" id="sourcebar" aria-label="Original files"><template id="source-link-template"><a class="evidence-link"></a></template></div>
+<div class="nav" aria-label="Slide navigation">
+  <button class="chrome-btn" id="prev-btn" type="button" aria-label="Previous slide">←</button>
+  <span id="hud-count" aria-live="polite"></span>
+  <button class="chrome-btn" id="next-btn" type="button" aria-label="Next slide">→</button>
+  <button class="chrome-btn" id="fullscreen-btn" type="button" aria-label="Enter fullscreen">⛶</button>
+</div>
 <div class="bar" id="bar"></div>
+</main>
 
 <script>
 (function () {
   const slides = Array.from(document.querySelectorAll(".slide"));
+  const stage = document.getElementById("stage");
   const bar = document.getElementById("bar");
   const count = document.getElementById("hud-count");
+  const sourcebar = document.getElementById("sourcebar");
+  const languageToggle = document.getElementById("language-toggle");
+  const themeToggle = document.getElementById("theme-toggle");
+  const fullscreenButton = document.getElementById("fullscreen-btn");
+  const originals = new WeakMap();
   let i = 0, notesOn = false;
+
+  const translations = [
+    {
+      selectors: {
+        ".kicker": [`SHBI-GB.7301 · 随机建模与仿真 · NYU 2026 夏季`],
+        "h1": [`对抗噪声的交易`],
+        ":scope > p:not(.note-hint)": [`预测市场交易策略的仿真研究`],
+        ".stat .l": [`模型层次`, `验证测试`, `每个参数点的重复模拟`, `统一主随机种子`],
+        ".notes p": [`欢迎。本次展示约20分钟：先讲模型，再说明为什么结果可信，接着展示主要发现和在线演示。使用方向键翻页；按 N 显示或隐藏演讲备注。`]
+      }
+    },
+    {
+      selectors: {
+        ".kicker": [`研究问题`],
+        "h2": [`一份“事件 X 是否会发生？”的合约价格为 <span class="hl">40美分</span>，若 X 发生则支付 <span class="hl">1美元</span>。<br>简单规则能否战胜直接买入？`],
+        ".reader-note": [`<strong>预测市场：</strong>可以买卖的“是/否”事件合约。40美分的 YES 价格通常可读作约40%的隐含概率。<strong>买入并持有：</strong>现在买入1份 YES 合约并一直持有到事件结算。`],
+        "li > span": [
+          `价格<strong>就是</strong>市场给出的概率预测，但它也含有噪声：订单簿较薄、情绪和反应缓慢。`,
+          `如果低于“公允价值”的下跌通常只是噪声，那么<strong>逢低买入</strong>应当有利可图。`,
+          `如果市场基本正确，那么<strong>没有任何策略</strong>能战胜买入并持有。`,
+          `我们处于哪一种世界？答案又取决于什么？`
+        ],
+        ".notes p": [`把问题理解为两种世界观的较量：噪声可以被利用，还是市场已经有效。我们的贡献是在一个可控的仿真世界中，精确测量各自何时成立。`]
+      }
+    },
+    {
+      selectors: {
+        ".kicker": [`为什么用仿真，而不是回测？`],
+        "h2": [`在仿真中，<span class="hl">真值由我们控制</span>`],
+        "li": [
+          `真实数据从不揭示当时真正的事件概率，因此回测无法把能力与运气彻底分开。`,
+          `我们构造一个真值<strong>确实存在但对交易者隐藏</strong>的世界。`,
+          `我们可以精确调节价格可能<strong>错得多严重</strong>，再根据已知真值测量策略利润。`,
+          `数万次相互独立的重复模拟，给出有意义的置信区间。`,
+          `<strong>每个数字都有固定随机种子。</strong>一个主种子（20260812）可重新生成所有表格和图。`,
+          `真实 Polymarket 数据只用于<strong>设定合理输入</strong>，不拟合，也不回测。`
+        ],
+        ".notes p": [`这是方法论上的关键：仿真让我们拥有地面真值和大量重复样本。必须明确研究边界——真实数据只帮助设定输入。`]
+      }
+    },
+    {
+      selectors: {
+        ".kicker": [`模型 · 教授批准的结构`],
+        "h2": [`每个时期依次模拟三个层次`],
+        ".reader-note": [`<strong>符号：</strong>t 是当前时间步，T 是最后一个时间步，q 是隐藏的事件概率，p 是交易者能够观察到的市场价格。`],
+        ".formula": [
+          `1 · 隐藏真值&nbsp;&nbsp;<span class="c">q_t — 有界随机游走，交易者永远看不到</span>`,
+          `2 · 观察价格&nbsp;&nbsp;<span class="c">p_t = 真值 + 噪声（两种版本）</span>`,
+          `3 · 最终结算&nbsp;&nbsp;<span class="c">以 q_T 的概率支付1美元，否则支付0</span>`
+        ],
+        ":scope > p:not(.reader-note):not(.note-hint)": [`每份利润 = 结算支付 − 买入价格 − 成本。结算由<strong>隐藏真值</strong>决定，因此策略只有在买入价格低于真实价值时才能获利，而不是靠预测噪声本身。`],
+        ".notes p": [`从上到下读三个框，这就是完整架构。重点强调最后一句：按照隐藏真值结算，使实验设计保持诚实。下一页用一条路径把它画出来。`]
+      }
+    },
+    {
+      selectors: {
+        ".kicker": [`模型 · 一份合约的逐期路径`],
+        ".figcap": [`<span style="color:var(--orange)">橙色虚线 = 隐藏真值 q_t</span> · <span style="color:var(--blue)">蓝线 = 观察价格 p_t</span> · <span style="color:var(--aqua)">绿线 = EMA 估计 f_t</span> · ▲ = 策略买入 · ★ = 结算`],
+        ".notes p": [`慢慢解读这张图：价格围绕缓慢移动的真值波动；EMA 平滑短期抖动；三角形表示约0.30美元时逢低买入；星号表示最终结算为 YES，利润约0.70美元。交易者能看到的全部信息只有蓝线。单条路径的结果是全赢或全输，因此后续每个数字都是两万条路径的平均。`]
+      },
+      alts: [`一份模拟合约：隐藏真值、观察价格、EMA、买入点和结算点`]
+    },
+    {
+      selectors: {
+        ".kicker": [`第1层 · 隐藏真值`],
+        "h2": [`一个<span class="hl">始终保持为概率</span>的鞅`],
+        ".reader-note": [`<strong>直白解释：</strong>σ<sub>q</sub> 控制真值波动；N(0,1) iid 表示每期得到一个全新的标准正态冲击；clip 把 q 限制在0.001到0.999；鞅表示不存在可预测的上升或下降漂移。`],
+        "li > span": [
+          `<strong>零均值冲击 ⇒ E[q<sub>t+1</sub> | q<sub>t</sub>] = q<sub>t</sub>。</strong>今天的真值是预测明天的最佳依据，也因此产生可检验的推论。`,
+          `<strong>√(q(1−q)) 阻尼：</strong>使用伯努利方差结构，使接近0或1的概率移动更小，因此随机游走自然停留在(0,1)内，而不是依赖截断。`,
+          `<strong>马尔可夫性质：</strong>明天只取决于今天，是最简洁、可辩护的信息结构。`
+        ],
+        ".notes p": [`鞅性质有双重作用：经济上合理，同时构成两项验证测试的基础——平均 q_T 应等于 q0，结算为 YES 的频率也应等于 q0。`]
+      }
+    },
+    {
+      selectors: {
+        ".kicker": [`第2层 · 观察价格`],
+        "h2": [`衡量市场效率的一个旋钮：<span class="hl">κ</span>`],
+        ".formula": [
+          `A（独立同分布噪声）：&nbsp;&nbsp;p<sub>t</sub> = clip( q<sub>t</sub> + η<sub>t</sub> )&nbsp;&nbsp;&nbsp;<span class="c">η<sub>t</sub> ~ N(0, σ<sub>p</sub>²)</span>`,
+          `B（部分调整）：&nbsp;&nbsp;p<sub>t</sub> = clip( p<sub>t−1</sub> + κ(q<sub>t</sub> − p<sub>t−1</sub>) + η<sub>t</sub> )`
+        ],
+        ".reader-note": [`<strong>如何理解 κ：</strong>κ=1 会立即弥合全部真值—价格差距；κ=0.2 每期弥合约20%，因此误差大约持续五期。σ<sub>p</sub> 表示新加入的价格噪声大小。`],
+        "li > span": [
+          `版本 A：误差<strong>在一期内产生并消失</strong>，市场每一步都从头定价。`,
+          `版本 B：价格以 κ 的速率接近真值，因此冲击按几何速度衰减——便宜的合约会<strong>持续便宜约 1/κ 期</strong>。`,
+          `κ=1 时，B 会逐路径地<strong>完全退化为 A</strong>（由测试强制保证），因此 κ 连续连接了“立即重定价”和“非常黏滞”。`,
+          `σ<sub>p</sub> 决定误差有<strong>多大</strong>；κ 决定误差能<strong>持续多久</strong>。`
+        ],
+        ".notes p": [`噪声大小和噪声寿命是整个研究的两个坐标轴。现在就要把它们区分清楚，因为核心结论依赖这一区分。`]
+      }
+    },
+    {
+      selectors: {
+        ".kicker": [`交易策略`],
+        "h2": [`平滑价格，<span class="hl">逢低买入</span>，持有至结算`],
+        ".formula": [`f<sub>t</sub> = α·p<sub>t</sub> + (1−α)·f<sub>t−1</sub>&nbsp;&nbsp;&nbsp;当&nbsp; f<sub>t</sub> − p<sub>t</sub> &gt; δ&nbsp;时买入1份`],
+        ".reader-note": [`<strong>一句话理解 EMA：</strong>f 是只根据观察价格得到的平滑估计。例如 f=50美分、p=40美分、δ=5美分时，10美分的差距会触发买入。`],
+        "li": [
+          `<strong>α</strong> = 公允价值估计的记忆长度（α 越小，记忆越长）`,
+          `<strong>δ</strong> = 多大的下跌才被视作错误定价，而非普通抖动`,
+          `完整网格：α ∈ {0.1, 0.3, 0.6} × δ ∈ {0.02, 0.05, 0.10}，共九个策略`,
+          `<strong>基准：</strong>买入并持有（“市场是对的”）和永不交易（利润恒为0）`,
+          `<strong>结构上禁止前视：</strong>decide(price_history) 只能得到 p₀…p<sub>t</sub> 的副本，除此之外的信息在它的世界里根本不存在`
+        ],
+        ".notes p": [`这些策略刻意保持机械化：不学习，也不在运行中优化。问题是连如此朴素的规则能否识别噪声。`]
+      }
+    },
+    {
+      selectors: {
+        ".kicker": [`为何相信这些数字 · 评分标准的30%`],
+        "h2": [`<span class="hl">37项测试</span>为每次修改把关`],
+        ".reader-note": [`<strong>验证测试：</strong>在接受任何结果之前，仿真器必须满足的性质。这些测试检查数学极限和信息泄漏，而不是检查某个结果是否“好看”。`],
+        "li > span": [
+          `<strong>零噪声极限：</strong>σ<sub>p</sub>=0 ⇒ 价格恒等于真值，退化的 EMA 从不交易，所有策略约等于买入并持有（鞅上的可选停止）`,
+          `<strong>鞅：</strong>平均 q<sub>T</sub>=0.3996，而 q₀=0.40（标准误0.0005）；结算频率0.4030（标准误0.0035）`,
+          `<strong>校准：</strong>初始概率为 x 的合约，最终 YES 频率约为 x，x ∈ {0.10 … 0.90}`,
+          `<strong>无前视：</strong>改变 t=40 之后的全部价格，冲击前的每次交易仍逐位一致；即使专门设计一个试图偷看未来的探针策略也无法利用泄漏`,
+          `<strong>随机种子可复现：</strong>黄金值测试固定精确随机流`
+        ],
+        ":scope > p:not(.reader-note):not(.note-hint)": [`<strong>对抗性审查发现了一个真实错误：</strong>第一版前视测试没有真的把受冲击后的价格交给策略，所以它根本不可能失败。我们用真实实验流程重建了测试，完整记录保存在仓库中。`],
+        ".notes p": [`这个错误故事证明审查流程有效，而不是应当隐藏的问题。修复后的测试确实有检测能力。PROJECT.md 把前视称为“足以让全部分析失效的那一个错误”。`]
+      }
+    },
+    {
+      selectors: {
+        ".kicker": [`实验设计`],
+        "h2": [`每项结论都带有<span class="hl">95%置信区间</span>`],
+        ".reader-note": [`<strong>95%置信区间：</strong>如果用同样方法反复实验，约95%的区间会覆盖真实均值。<strong>配对差 / 共同随机数：</strong>让策略在相同模拟路径上比较，从而抵消路径运气。`],
+        "li": [
+          `<strong>每个策略：</strong>E[利润]、P(亏损)、E[亏损 | 亏损]，CLT 区间为均值 ± 1.96·s/√n`,
+          `<strong>共同随机数：</strong>11个策略都在同一批模拟路径上评分；“战胜买入并持有”始终表示配对差的置信区间越过零以上`,
+          `<strong>样本量控制：</strong>不断将 n 加倍，直到置信区间半宽达到容差；要求 ±0.005 时需要 n=64,000`,
+          `<strong>参数扫描：</strong>围绕数据校准的基准值扫描 σ<sub>p</sub> × κ × 成本`
+        ],
+        ".figcap": [`半宽按照 1/√n 下降，直到满足容差`],
+        ".notes p": [`共同随机数是重要的技术选择：配对差把比较方差缩小约10倍，因此“战胜买入并持有”的置信区间很窄（约±0.0015，而单独均值约±0.007）。`]
+      },
+      alts: [`样本量控制图`]
+    },
+    {
+      selectors: {
+        ".kicker": [`结果 · 基准市场（κ 0.3 · 噪声 0.05）`],
+        "h2": [`九个参数格中有八个<span class="hl">战胜买入并持有</span>`],
+        ".reader-note": [`<strong>如何读网格：</strong>每个格子代表一个 (α, δ) 策略。优势 = E[策略利润] − E[买入并持有利润]，单位为每1美元合约；“显著”表示95%配对置信区间始终高于零。`],
+        ".figcap": [`每1美元合约的 E[利润] · 描边 = 获胜且置信区间显著`],
+        "th": [`策略`, `E[利润]`, `P(亏损)`],
+        "td:first-child": [`EMA(0.1, 0.10) ★`, `EMA(0.3, 0.10)`, `EMA(0.3, 0.05)`, `买入并持有`, `永不交易`],
+        ":scope > .cols p:not(.figcap)": [`获胜策略在两个旋钮上都保持<strong>耐心</strong>：长记忆（α=0.1）+ 只在约2σ的深跌时行动（δ=0.10）。配对优势为 <strong>+0.1034</strong>，置信区间 [+0.1020, +0.1049]。`],
+        ".notes p": [`买入并持有的期望利润按构造约等于0（鞅 + 买入时均值为零的噪声）。还要注意右下角 (0.6, 0.10) 几乎不交易，说明两个旋钮会相互作用。`]
+      },
+      alts: [`九种 EMA 策略的利润热力图`]
+    },
+    {
+      selectors: {
+        ".kicker": [`核心实验`],
+        "h2": [`优势需要多少持续性？<span class="hl">完全不需要。</span>`],
+        ".reader-note": [`<strong>此处“持续性”指价格误差的记忆。</strong>κ=1 表示立即重定价、误差不延续；κ 越小，误差持续越久。图中的“优势”是最佳 EMA 策略减去买入并持有。`],
+        ".figcap": [`最佳策略相对买入并持有的优势随 κ 变化 · 三种成本 · 95%置信带`],
+        "li": [
+          `在<strong>所有 κ ∈ [0.05, 1]</strong>、所有成本 ≤2美分时都显著`,
+          `在 <strong>κ≈0.2–0.3</strong> 达到峰值：+0.1023 [+0.1007, +0.1038]`,
+          `最差情形（κ=1、费用2美分）仍为 <strong>+0.0939</strong> [+0.0913, +0.0965]`,
+          `内部最优的原因：下跌必须<em>持续得足以被捕捉</em>，又必须在<em>结算前完成修正</em>`
+        ],
+        ".notes p": [`我们原本预期会存在一个阈值——κ 低到某个程度后策略才有效。模型否定了这个直觉。解释峰值两侧，并指出两种策略最多只交易一次，所以成本影响较小。`]
+      },
+      alts: [`最佳策略相对买入并持有的优势随 κ 变化`]
+    },
+    {
+      selectors: {
+        ".kicker": [`更深一层的发现`],
+        "h2": [`<span class="hl">噪声创造优势。</span>持续性只改变它的形状。`],
+        ".reader-note": [`<strong>如何读热力图：</strong>横轴 = κ，纵轴 = 观察噪声大小 σ<sub>p</sub>。每个格子从九个 EMA 规则中选择最佳者，再与买入并持有比较。`],
+        ".figcap": [`成本为1美分时，28个 (κ, σ_p) 格子全部在置信区间上显著`],
+        "th": [`σ_p`, `相对买入并持有的最佳优势`, `显著？`],
+        "td:last-child": [`否`, `是`, `是`, `是`, `是`],
+        ":scope > .cols p:not(.figcap)": [`按行阅读：无论 κ 如何，优势都随<strong>噪声增大</strong>而扩大。当 σ_p=0 时，它会<strong>精确消失</strong>。逢低买入是在押注下跌只是噪声；在这个模型中，按照构造，它们确实是。`],
+        ".notes p": [`这是全场的论点页。它也指出结果必然在哪里失效：当下跌可能来自新闻时。由此进入扩展模型。`]
+      },
+      alts: [`κ 与观察噪声 σ_p 的交互热力图`]
+    },
+    {
+      selectors: {
+        ".kicker": [`扩展 · 第12页要求的压力测试 · 默认关闭`],
+        "h2": [`加入新闻：隐藏真值中的<span class="hl">泊松到达</span>`],
+        ".reader-note": [`<strong>新闻参数：</strong>λ 是每期发生跳跃的概率（λ=.05、T=100 时约有5次事件）；σ<sub>J</sub> 是跳跃大小；B 决定本期是否发生跳跃；G 给出一个新的正向或负向正态冲击。`],
+        "li": [
+          `<strong>离散时间泊松过程：</strong>到达间隔服从几何分布（无记忆），事件数约为 Poisson(λT)`,
+          `<strong>零均值跳跃保持鞅性质</strong> ⇒ 开启跳跃后37项验证测试仍全部通过`,
+          `<strong>高斯混合增量：</strong>方差为 (σ<sub>q</sub>² + λσ<sub>J</sub>²)·q(1−q)，并带有<em>厚尾</em>——出现突变，而不只是更多抖动`,
+          `<strong>λ=0 不增加任何随机抽取</strong>——与批准模型逐位一致（黄金测试）`
+        ],
+        ".figcap": [`种子42：策略买入了一个其实由新闻造成的“低点” → −0.399美元`],
+        ".notes p": [`这不是装饰性扩展，而是对第12页结论的证伪测试。公式是在原扩散项上加入一个由伯努利开关控制的跳跃项。简要讲清三条数学性质，再用图中的种子42路径说明“把新闻当噪声”的陷阱。`]
+      },
+      alts: [`一次由新闻造成、却被策略误判为机会的下跌`]
+    },
+    {
+      selectors: {
+        ".kicker": [`扩展 · 定量结果 · 四种模型情形`],
+        "h2": [`新闻会侵蚀优势——我们<span class="hl">画出了优势消失的位置</span>`],
+        ".reader-note": [`<strong>边界：</strong>即使最佳 EMA 规则也不再战胜买入并持有的分界。X 表示该格子的95%配对置信区间低于零，而不只是一次带噪声的负估计。`],
+        ".figcap": [`最佳策略优势随 (λ, 跳跃大小) 变化 · X = 逢低买入不再战胜买入并持有`],
+        "li": [
+          `侵蚀幅度近似随 λ 线性增长：当每20期1次事件时为 <strong>−24%</strong>，每5期1次时为 <strong>−62%</strong>（σ<sub>J</sub>=0.2）`,
+          `<strong>边界确实存在：</strong>在 (λ=0.2, σ<sub>J</sub>=0.6) 时，最佳格子显著亏于基准：−0.007 [−0.009, −0.004]`,
+          `接近边界时，获胜策略的 δ 从0.10退到0.02——<strong>大幅下跌开始代表信息</strong>，不再是便宜机会`,
+          `版本 A + 跳跃：获胜者从慢平滑转为快平滑——长记忆变成过时的锚点`
+        ],
+        ".notes p": [`从热力图左下读到右上：左下接近批准模型，右上由新闻主导。δ 的退缩是最微妙的一点，要慢慢说明。结论是：优势取决于误差预算中噪声所占的比例，而我们已经找到符号翻转的区域。`]
+      },
+      alts: [`新闻到达率与跳跃大小决定的策略优势边界热力图`]
+    },
+    {
+      selectors: {
+        ".kicker": [`风险特征`],
+        "h2": [`规则并不是<span class="hl">更少亏损</span>——而是<span class="hl">每次亏得更少</span>`],
+        ".reader-note": [`<strong>为什么有两个峰：</strong>以价格 p 买入 YES 合约，若 YES 则赚 1−p−成本；若 NO 则亏 p+成本。若 EMA 信号从未触发，还会在0处出现第三个峰。`],
+        ".figcap": [`二元结算产生双峰利润分布（κ=0.2，成本1美分）`],
+        "li": [
+          `获胜策略的 P(亏损) 为 <strong>58.8%</strong>——多数时候都亏，但期望利润仍显著为正`,
+          `低价买入同时改善两端：<strong>亏损更小</strong>（发生亏损时 −0.29美元，而非 −0.40美元），并且<strong>盈利更大</strong>`,
+          `精确位于0的第三个尖峰来自信号从未触发的路径`
+        ],
+        ".notes p": [`这里要提醒：期望值并不是完整故事。真实交易者还会关心利润分布；在本模型中，结算风险主导路径风险。`]
+      },
+      alts: [`EMA 策略与买入并持有的利润分布`]
+    },
+    {
+      selectors: {
+        ".kicker": [`与现实数据对接`],
+        "h2": [`真实 Polymarket 数据<span class="hl">只用于设定输入</span>`],
+        ".reader-note": [`<strong>Gamma</strong> 提供市场元数据；<strong>CLOB</strong> 提供价格历史。“矩估计”选择模型参数，使模型的方差和一步依赖关系与观察到的统计量一致。`],
+        "li": [
+          `通过 Polymarket 公共 API（Gamma + CLOB）在线获取数据；可在仪表盘中粘贴任意市场链接`,
+          `<strong>矩估计：</strong>版本 A 下 Δp 为 MA(1)，因此滞后1期自协方差识别 σ<sub>p</sub>；经过 √(q(1−q)) 调整的残差方差识别 σ<sub>q</sub>`,
+          `仓库内保存了五个不同市场的离线样本（每个418–743个小时数据点），无网络也能演示`,
+          `隐含 σ<sub>q</sub>：<strong>每步0.002–0.019</strong>，因此默认0.02位于现实但偏高波动的一端`,
+          `估计器已用参数已知的模拟数据验证`,
+          `<strong>研究边界：</strong>不在真实数据上拟合或回测，本研究不对实际 Polymarket 利润作出主张`
+        ],
+        ".notes p": [`提前回答最自然的问题：“那我能否在 Polymarket 赚钱？”不能从本研究推出。模型假设所有错误定价都是噪声，而现实会同时混合噪声和新闻。`]
+      }
+    },
+    {
+      selectors: {
+        ".kicker": [`在线演示`],
+        "h2": [`让我们一起把市场推到失效边界`],
+        ":scope > p:not(.note-hint)": [`<span>单路径浏览器</span><span>调整 δ，观察策略判定翻转</span><span>加载真实市场</span><span>开启新闻跳跃</span>`],
+        ".demo-btn": [`打开仪表盘 →`],
+        ".note-hint": [`运行于 Streamlit Community Cloud，无需本地设置。内置样本使演示不依赖实时 Polymarket API。`],
+        ".notes p": [`演示脚本（约5分钟）：1）重新模拟几条路径，指出隐藏真值；2）在策略实验室将 δ 从0.05拖到0.15，观察显著性判定翻转；3）粘贴 Polymarket 链接，自动填入参数并重跑；4）开启新闻跳跃，反复模拟直到出现“把新闻当低价机会”的路径。若现场网络不稳定，使用内置样本。`]
+      }
+    },
+    {
+      selectors: {
+        ".kicker": [`结论`],
+        "h2": [`要计算的是<span class="hl">噪声</span>，而不是黏滞性`],
+        ".reader-note": [`<strong>研究边界：</strong>这些结论解释的是受控仿真器及其假设，并不保证真实市场回报。现实中的价格下跌可能同时包含噪声、新闻、价差和市场冲击。`],
+        "li > span": [
+          `基准情形下，朴素 EMA 逢低买入规则每1美元合约比买入并持有高 <strong>0.10美元</strong>；在全部持续性范围内都显著，并能承受2美分成本`,
+          `预期中的“持续性阈值”并不存在；优势在中等 κ 达到峰值，并由<strong>观察噪声创造</strong>——在 σ<sub>p</sub>=0 时精确消失`,
+          `新闻近似线性地侵蚀优势，并在已绘制的<strong>边界</strong>上将其消灭；(λ=0.2, σ<sub>J</sub>=0.6) 时符号翻转，下跌开始代表信息`,
+          `可信链条：37项测试 · 对抗性审查 · 共同随机数 · 一个主随机种子`,
+          `<strong>未来工作：</strong>把真实市场放到边界图上（从异常大幅变化估计 λ、σ<sub>J</sub>）· 退出规则与仓位规模 · 买卖价差和价格冲击 · 相关多市场组合`
+        ],
+        ":scope > p:not(.reader-note):not(.note-hint)": [`<strong>我们的最终收获：</strong>仿真研究最有价值的产出，是迫使研究者明确机制。我们问“交易者需要多少持续性？”模型回答：“问题问错了。”`],
+        ".note-hint": [`github.com/larionovaa2248-glitch/stochastic-project · 谢谢！欢迎提问。`],
+        ".notes p": [`用重构后的问题结束。任何希望复现的人都可以查看仓库；从主随机种子20260812开始，可以重新生成全部结果。`]
+      }
+    }
+  ];
+
+  const sourceLinks = [
+    [["README", "README", "README.md"], ["Project brief", "项目说明", "PROJECT.md"]],
+    [["Project brief", "项目说明", "PROJECT.md"]],
+    [["Experiment engine", "实验引擎", "src/experiments.py"]],
+    [["Model source", "模型源码", "src/model.py"], ["Project brief", "项目说明", "PROJECT.md"]],
+    [["Model source", "模型源码", "src/model.py"], ["Figure", "原图", "report/figures/fig_single_path.png"]],
+    [["Model source", "模型源码", "src/model.py"], ["Validation tests", "验证测试", "tests/test_model.py"]],
+    [["Model source", "模型源码", "src/model.py"], ["Validation tests", "验证测试", "tests/test_model.py"]],
+    [["Policy source", "策略源码", "src/policies.py"], ["Project brief", "项目说明", "PROJECT.md"]],
+    [["Validation tests", "验证测试", "tests/test_model.py"], ["Review log", "审查记录", "results/review_log.md"]],
+    [["Experiment engine", "实验引擎", "src/experiments.py"], ["Run-length data", "样本量数据", "results/run_length_control.csv"]],
+    [["Baseline data", "基准数据", "results/policy_comparison_variantB_kappa03.csv"], ["Figure", "原图", "report/figures/fig_grid_profit.png"]],
+    [["Persistence data", "持续性数据", "results/headline_kappa.csv"], ["Figure", "原图", "report/figures/fig_headline_kappa.png"]],
+    [["Interaction data", "交互数据", "results/headline_interaction.csv"], ["Figure", "原图", "report/figures/fig_headline_interaction.png"]],
+    [["Model source", "模型源码", "src/model.py"], ["Figure", "原图", "report/figures/fig_jump_path.png"]],
+    [["News frontier data", "新闻边界数据", "results/jump_frontier.csv"], ["Figure", "原图", "report/figures/fig_jump_frontier.png"]],
+    [["Results summary", "结果摘要", "results/summary.md"], ["Figure", "原图", "report/figures/fig_profit_distribution.png"]],
+    [["Calibration source", "校准源码", "src/calibration.py"], ["Sample markets", "市场样本", "results/sample_markets/index.json"]],
+    [["Dashboard source", "仪表盘源码", "dashboard/app.py"], ["Live dashboard", "在线仪表盘", "https://alhabor-stochastic-project.streamlit.app/"]],
+    [["Results summary", "结果摘要", "results/summary.md"], ["Final report", "期末报告", "report/Trading_Against_Noise_Final_Report.pdf"]]
+  ];
+  const repoBase = "https://github.com/Alhabor/stochastic-project/blob/main/";
+
+  slides.forEach((slide, index) => {
+    slide.id = "slide-" + (index + 1);
+    slide.dataset.trace = "TRACE " + String(index + 1).padStart(2, "0");
+    slide.setAttribute("role", "group");
+    slide.setAttribute("aria-roledescription", "slide");
+    slide.setAttribute("aria-label", (index + 1) + " of " + slides.length);
+  });
+
+  function setTranslatedHtml(element, html, language) {
+    if (!element) return;
+    if (!originals.has(element)) originals.set(element, element.innerHTML);
+    element.innerHTML = language === "zh" ? html : originals.get(element);
+  }
+
+  function applySlideTranslation(slide, spec, language) {
+    if (!spec) return;
+    Object.entries(spec.selectors || {}).forEach(([selector, values]) => {
+      const elements = Array.from(slide.querySelectorAll(selector));
+      values.forEach((html, index) => setTranslatedHtml(elements[index], html, language));
+    });
+    const images = Array.from(slide.querySelectorAll("img"));
+    (spec.alts || []).forEach((alt, index) => {
+      const image = images[index];
+      if (!image) return;
+      if (!image.dataset.enAlt) image.dataset.enAlt = image.alt;
+      image.alt = language === "zh" ? alt : image.dataset.enAlt;
+    });
+  }
+
+  function language() { return document.documentElement.dataset.language === "zh" ? "zh" : "en"; }
+  function theme() { return document.documentElement.dataset.theme === "light" ? "light" : "dark"; }
+
+  function applyLanguage(nextLanguage, persist) {
+    document.documentElement.dataset.language = nextLanguage;
+    document.documentElement.lang = nextLanguage === "zh" ? "zh-CN" : "en";
+    slides.forEach((slide, index) => applySlideTranslation(slide, translations[index], nextLanguage));
+    slides.forEach(slide => {
+      const heading = slide.querySelector(".notes h4");
+      if (heading) setTranslatedHtml(heading, "演讲者备注", nextLanguage);
+    });
+    document.title = nextLanguage === "zh"
+      ? "对抗噪声的交易 — SHBI-GB.7301 期末展示"
+      : "Trading Against Noise — SHBI-GB.7301 Final Presentation";
+    languageToggle.textContent = nextLanguage === "zh" ? "EN" : "中文";
+    languageToggle.setAttribute("aria-label", nextLanguage === "zh" ? "Switch to English" : "切换至中文");
+    document.getElementById("prev-btn").setAttribute("aria-label", nextLanguage === "zh" ? "上一页" : "Previous slide");
+    document.getElementById("next-btn").setAttribute("aria-label", nextLanguage === "zh" ? "下一页" : "Next slide");
+    fullscreenButton.setAttribute("aria-label", nextLanguage === "zh" ? "进入全屏" : "Enter fullscreen");
+    if (persist) {
+      try { localStorage.setItem("stochastic-slides-language", nextLanguage); } catch (_) {}
+    }
+    updateSourceBar();
+    updateCount();
+    syncNotes();
+  }
+
+  function applyTheme(nextTheme, persist) {
+    document.documentElement.dataset.theme = nextTheme;
+    themeToggle.textContent = nextTheme === "dark" ? "☀" : "☾";
+    themeToggle.setAttribute("aria-label", nextTheme === "dark" ? "Switch to light theme" : "Switch to dark theme");
+    if (persist) {
+      try { localStorage.setItem("stochastic-slides-theme", nextTheme); } catch (_) {}
+    }
+  }
+
+  function updateSourceBar() {
+    const zh = language() === "zh";
+    const links = sourceLinks[i] || [];
+    sourcebar.replaceChildren();
+    const label = document.createElement("span");
+    label.className = "sourcebar-label";
+    label.textContent = zh ? "原始文件" : "Original files";
+    sourcebar.appendChild(label);
+    links.forEach(item => {
+      const link = document.createElement("a");
+      link.className = "evidence-link";
+      const path = item[2] || item[0];
+      link.href = path.startsWith("http") ? path : repoBase + path;
+      link.target = "_blank";
+      link.rel = "noopener";
+      link.textContent = (zh ? item[1] : item[0]) + " ↗";
+      sourcebar.appendChild(link);
+    });
+  }
+
+  function updateCount() {
+    const suffix = notesOn ? (language() === "zh" ? " · 备注开启" : " · NOTES ON") : "";
+    count.textContent = String(i + 1).padStart(2, "0") + " / " + String(slides.length).padStart(2, "0") + suffix;
+  }
 
   function show(n) {
     i = Math.max(0, Math.min(slides.length - 1, n));
-    slides.forEach((s, k) => s.classList.toggle("active", k === i));
+    slides.forEach((s, k) => {
+      s.classList.toggle("active", k === i);
+      s.setAttribute("aria-hidden", k === i ? "false" : "true");
+    });
     bar.style.width = ((i + 1) / slides.length * 100) + "%";
-    count.textContent = (i + 1) + " / " + slides.length + "  ·  N notes";
-    location.hash = "#/" + (i + 1);
+    updateCount();
+    updateSourceBar();
+    if (location.hash !== "#/" + (i + 1)) history.replaceState(null, "", "#/" + (i + 1));
     syncNotes();
   }
   function syncNotes() {
@@ -461,17 +1432,38 @@
     else if (["ArrowLeft", "PageUp"].includes(e.key)) { e.preventDefault(); show(i - 1); }
     else if (e.key === "Home") show(0);
     else if (e.key === "End") show(slides.length - 1);
-    else if (e.key.toLowerCase() === "n") { notesOn = !notesOn; syncNotes(); }
+    else if (e.key.toLowerCase() === "n") { notesOn = !notesOn; syncNotes(); updateCount(); }
+    else if (e.key.toLowerCase() === "l") applyLanguage(language() === "zh" ? "en" : "zh", true);
+    else if (e.key.toLowerCase() === "t") applyTheme(theme() === "dark" ? "light" : "dark", true);
+    else if (e.key.toLowerCase() === "f") fullscreenButton.click();
   });
   addEventListener("click", (e) => {
-    if (e.target.closest("a, .notes")) return;
+    if (e.target.closest("a, button, .notes")) return;
     show(e.clientX > innerWidth / 3 ? i + 1 : i - 1);
+  });
+  document.getElementById("prev-btn").addEventListener("click", () => show(i - 1));
+  document.getElementById("next-btn").addEventListener("click", () => show(i + 1));
+  languageToggle.addEventListener("click", () => applyLanguage(language() === "zh" ? "en" : "zh", true));
+  themeToggle.addEventListener("click", () => applyTheme(theme() === "dark" ? "light" : "dark", true));
+  fullscreenButton.addEventListener("click", () => {
+    if (!document.fullscreenElement) stage.requestFullscreen?.();
+    else document.exitFullscreen?.();
+  });
+  let touchStartX = null;
+  stage.addEventListener("pointerdown", e => { if (e.pointerType === "touch") touchStartX = e.clientX; });
+  stage.addEventListener("pointerup", e => {
+    if (touchStartX === null) return;
+    const delta = e.clientX - touchStartX;
+    touchStartX = null;
+    if (Math.abs(delta) > 45) show(i + (delta < 0 ? 1 : -1));
   });
   function fromHash() {
     const m = location.hash.match(/^#\/(\d+)/);
     return m ? parseInt(m[1], 10) - 1 : 0;
   }
   addEventListener("hashchange", () => { if (fromHash() !== i) show(fromHash()); });
+  applyTheme(theme(), false);
+  applyLanguage(language(), false);
   show(fromHash());
 
 })();
