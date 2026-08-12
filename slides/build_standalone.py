@@ -4,8 +4,7 @@
 
 Writes slides/Trading_Against_Noise_Slides.html — one double-clickable file
 that renders the full deck anywhere, no server and no assets folder needed.
-(The live-demo button falls back to plainly opening localhost:8601, since
-the one-click boot needs present.py.)
+The live-demo button opens the public Streamlit deployment.
 """
 
 from __future__ import annotations

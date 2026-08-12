@@ -6,6 +6,14 @@ We simulate a Polymarket/Kalshi-style binary prediction market with a hidden tru
 probability, a noisy observed price, and settlement at the horizon, then evaluate
 EMA-threshold trading policies against buy-and-hold and never-trade benchmarks.
 
+## Web demo
+
+- Presentation: https://show.alhabor.com/2026/stochastic-project/
+- Interactive dashboard: https://alhabor-stochastic-project.streamlit.app/
+
+Both links are fully web-based; the presentation computer does not need Python
+or a local server.
+
 ## One-command run (Windows, macOS, Linux)
 
 ```bash

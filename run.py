@@ -2,8 +2,7 @@
 
     python run.py                 set up + run tests + launch the dashboard
     python run.py --experiments   also regenerate all CSVs and figures first
-    python run.py --slides        serve the presentation instead (slides +
-                                  one-click dashboard button)
+    python run.py --slides        serve the presentation locally instead
     python run.py --skip-tests    skip the test suite
     python run.py --no-dashboard  stop after setup/tests (CI-style check)
 
@@ -72,7 +71,7 @@ def main() -> int:
 
     if args.slides:
         print("[run] serving slides at http://localhost:8700 "
-              "(demo button boots the dashboard) — Ctrl-C to stop")
+              "(demo button opens the public dashboard) — Ctrl-C to stop")
         run([py, str(ROOT / "slides" / "present.py")])
     elif not args.no_dashboard:
         # headless=true suppresses Streamlit's first-run email prompt; we open

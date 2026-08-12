@@ -1,13 +1,12 @@
-"""Presentation server: serves the slide deck AND powers the demo button.
+"""Local presentation server for the slide deck.
 
 Run from the repo root (or anywhere):
 
     python slides/present.py
 
 - Serves the slides at http://localhost:8700 (and opens them in your browser).
-- The "Open the dashboard" button on the demo slide calls this server's tiny
-  API, which starts `streamlit run dashboard/app.py` on port 8601 if it is
-  not already running, waits until it answers, and only then opens it.
+- The "Open the dashboard" button opens the public Streamlit deployment.
+- The local dashboard API remains available for development workflows.
 
 Stdlib only — no extra dependencies. Streamlit itself is launched from the
 project's .venv when present, else from the current interpreter.
@@ -114,8 +113,8 @@ def main() -> None:
     handler = partial(PresentHandler, directory=str(SLIDES_DIR))
     server = ThreadingHTTPServer(("127.0.0.1", args.slides_port), handler)
     url = f"http://localhost:{args.slides_port}"
-    print(f"[present] slides at {url}  ·  demo button will boot the dashboard "
-          f"on port {args.dashboard_port}  ·  Ctrl-C to stop")
+    print(f"[present] slides at {url}  ·  demo button opens the public dashboard "
+          "·  Ctrl-C to stop")
     if not args.no_open:
         webbrowser.open(url)
     try:
