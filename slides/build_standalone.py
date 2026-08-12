@@ -25,6 +25,6 @@ def inline(match: re.Match) -> str:
     b64 = base64.b64encode(data).decode("ascii")
     return f'src="data:image/png;base64,{b64}"'
 
-html, n = re.subn(r'src="(assets/[^"]+\.png)"', inline, html)
+html, n = re.subn(r'src="(assets/[^"?]+\.png)(?:\?[^\"]*)?"', inline, html)
 OUT.write_text(html, encoding="utf-8")
 print(f"inlined {n} images -> {OUT} ({OUT.stat().st_size / 1e6:.1f} MB)")
