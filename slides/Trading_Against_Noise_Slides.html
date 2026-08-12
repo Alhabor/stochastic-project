@@ -835,7 +835,7 @@
   <button class="chrome-btn" id="theme-toggle" type="button" aria-label="Switch to light theme">☀</button>
   <a class="chrome-btn" href="https://github.com/Alhabor/stochastic-project" target="_blank" rel="noopener" aria-label="Open project repository">GH↗</a>
 </div>
-<div class="sourcebar" id="sourcebar" aria-label="Original files"></div>
+<div class="sourcebar" id="sourcebar" aria-label="Original files"><template id="source-link-template"><a class="evidence-link"></a></template></div>
 <div class="nav" aria-label="Slide navigation">
   <button class="chrome-btn" id="prev-btn" type="button" aria-label="Previous slide">←</button>
   <span id="hud-count" aria-live="polite"></span>
@@ -1230,6 +1230,7 @@
     sourcebar.appendChild(label);
     links.forEach(item => {
       const link = document.createElement("a");
+      link.className = "evidence-link";
       const path = item[2] || item[0];
       link.href = path.startsWith("http") ? path : repoBase + path;
       link.target = "_blank";
